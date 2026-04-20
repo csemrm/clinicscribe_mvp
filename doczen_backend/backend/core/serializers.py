@@ -10,7 +10,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from backend.core.forms_library import FORMS_LIBRARY
 from backend.core.models import Attachment, AuditEvent, Clinic, Document, Encounter, Patient, User
 from backend.core.red_flags import detect_red_flags
-from backend.core.services import generate_document_content
+from backend.core.services import extract_chief_complaint, generate_document_content
 
 
 class ClinicSerializer(serializers.ModelSerializer):
@@ -199,9 +199,31 @@ class EncounterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context["request"]
         clinic = request.user.clinic
-        encounter = Encounter.objects.create(clinic=clinic, created_by=request.user, **validated_data)
-        encounter.red_flags = detect_red_flags(encounter.raw_notes or encounter.chief_complaint or "")
+
+        raw_notes = validated_data.pop("raw_notes", "")
+        chief_complaint = validated_data.pop("chief_complaint", "")
+        metadata = validated_data.pop("metadata", {}) or {}
+
+        if not chief_complaint and raw_notes:
+            extracted, meta = extract_chief_complaint(raw_notes)
+            if extracted:
+                chief_complaint = extracted
+                metadata["chief_complaint_ai"] = meta
+
+        create_kwargs = dict(validated_data)
+        create_kwargs.update(
+            clinic=clinic,
+            created_by=request.user,
+            raw_notes=raw_notes,
+            chief_complaint=chief_complaint,
+            metadata=metadata,
+        )
+
+        encounter = Encounter.objects.create(**create_kwargs)
+
+        encounter.red_flags = detect_red_flags(raw_notes or chief_complaint)
         encounter.save(update_fields=["red_flags"])
+
         AuditEvent.objects.create(
             clinic=clinic,
             actor=request.user,
@@ -210,7 +232,9 @@ class EncounterSerializer(serializers.ModelSerializer):
             action="created",
             payload={"patient_id": encounter.patient_id},
         )
+
         return encounter
+
 
     def update(self, instance, validated_data):
         request = self.context["request"]
@@ -219,8 +243,17 @@ class EncounterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Final encounters are locked through finalized documents.")
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        current_metadata = instance.metadata or {}
+        if not instance.chief_complaint and instance.raw_notes:
+            chief_complaint, meta = extract_chief_complaint(instance.raw_notes)
+            if chief_complaint:
+                instance.chief_complaint = chief_complaint
+                current_metadata["chief_complaint_ai"] = meta
+
         instance.red_flags = detect_red_flags(instance.raw_notes or instance.chief_complaint or "")
-        instance.save()
+        instance.metadata = current_metadata
+        instance.save(update_fields=["chief_complaint", "raw_notes", "status", "red_flags", "metadata", "updated_at"])
         AuditEvent.objects.create(
             clinic=request.user.clinic,
             actor=request.user,

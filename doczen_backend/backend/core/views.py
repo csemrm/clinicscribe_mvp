@@ -26,7 +26,7 @@ from backend.core.serializers import (
     ReviewRequestSerializer,
     UserSerializer,
 )
-from backend.core.services import upsert_generated_document
+from backend.core.services import extract_chief_complaint, upsert_generated_document
 
 User = get_user_model()
 
@@ -79,6 +79,9 @@ class EncounterViewSet(ClinicScopedViewSet):
     def perform_create(self, serializer):
         serializer.save()
 
+    def perform_update(self, serializer):
+        serializer.save()
+
     @action(detail=True, methods=["post"])
     def generate_soap(self, request, pk=None):
         return self._generate(request, pk, Document.Kind.SOAP)
@@ -127,12 +130,21 @@ class EncounterViewSet(ClinicScopedViewSet):
         return Response(DocumentSerializer(document, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
-class DocumentViewSet(ClinicScopedViewSet):
+class ChiefComplaintPreviewView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        raw_notes = request.data.get("raw_notes", "")
+        chief_complaint, meta = extract_chief_complaint(raw_notes)
+        return Response({"chief_complaint": chief_complaint, "metadata": meta})
+
+
+class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
     queryset = Document.objects.select_related("encounter", "encounter__clinic", "encounter__patient")
 
     def get_queryset(self):
-        return super().get_queryset().filter(encounter__clinic=self.request.user.clinic)
+        return self.queryset.filter(encounter__clinic=self.request.user.clinic)
 
     def perform_update(self, serializer):
         serializer.save()

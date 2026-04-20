@@ -1,0 +1,6 @@
+.env
+doczen_backend/.env
+doczen_frontend/.env
+doczen_backend/.DS_Store
+doczen_frontend/.DS_Store
+/doczen_frontend/node_modules

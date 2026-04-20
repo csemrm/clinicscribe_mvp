@@ -1,7 +1,6 @@
-# Doczen AI Frontend Scaffold
+# Doczen AI Frontend (JavaScript)
 
-React + TypeScript + Vite frontend for the Doczen AI workflow:
-Patient → Encounter → AI Draft → Human Review → Final PDF
+React + Vite + JavaScript frontend for the Doczen AI backend.
 
 ## Run locally
 
@@ -10,24 +9,11 @@ npm install
 npm run dev
 ```
 
-## Run with Docker
+## Run in Docker
 
 ```bash
-cp .env.example .env
-
 docker compose up --build
 ```
 
-Then open:
-
-- http://localhost:3000
-
-## API connection
-
-Set the backend base URL:
-
-```bash
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-This scaffold includes the page structure, layout, and API wrapper hooks. Connect each page to the matching backend endpoints as needed.
+The app expects the backend at `http://localhost:8000` by default.
+Set `VITE_API_BASE_URL` if you need another address.

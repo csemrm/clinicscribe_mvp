@@ -12,11 +12,10 @@ cp .env.example .env
 docker compose up --build
 
 docker compose down
-docker compose build --no-cache
-docker compose up
-docker compose exec web python manage.py migrate
-
-docker compose exec web python manage.py migrate
+docker compose run --rm web python manage.py makemigrations core
+docker compose down -v
+docker compose up --build
+docker compose run --rm web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
 ```
 The stack includes:
