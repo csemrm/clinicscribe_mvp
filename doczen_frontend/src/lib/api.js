@@ -1,17 +1,32 @@
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const API_BASE = RAW_API_BASE.replace(/\/+$/, '').replace(/\/api$/, '')
 const TOKEN_KEY = 'doczen_token'
+const TOKEN_FALLBACK_KEYS = ['access', 'access_token', 'token']
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  const primary = localStorage.getItem(TOKEN_KEY)
+  if (primary) return primary
+
+  for (const key of TOKEN_FALLBACK_KEYS) {
+    const value = localStorage.getItem(key)
+    if (value) return value
+  }
+
+  return null
 }
 
 export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token)
+  for (const key of TOKEN_FALLBACK_KEYS) {
+    localStorage.setItem(key, token)
+  }
 }
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  for (const key of TOKEN_FALLBACK_KEYS) {
+    localStorage.removeItem(key)
+  }
 }
 
 export function getApiBase() {
@@ -70,7 +85,7 @@ export async function login(payload) {
 export async function register(payload) {
   return apiRequest('/api/register/', {
     method: 'POST',
-    body: JSON.stringify(buildAuthBody(payload)),
+    body: JSON.stringify(payload),
   })
 }
 

@@ -51,6 +51,7 @@ export default function Layout({ children }) {
           <NavLink to="/app" end>Dashboard</NavLink>
           <NavLink to="/app/patients">Patients</NavLink>
           <NavLink to="/app/encounters/new">New Encounter</NavLink>
+           <NavLink to="/app/documents">Documents</NavLink>
         </nav>
 
         <div className="sidebar-card">

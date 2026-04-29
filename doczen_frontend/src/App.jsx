@@ -10,6 +10,7 @@ import PatientDetail from './pages/PatientDetail'
 import EncounterNew from './pages/EncounterNew'
 import EncounterDetail from './pages/EncounterDetail'
 import DocumentEditor from './pages/DocumentEditor'
+import Documents from './pages/Documents'
 
 export default function App() {
   return (
@@ -67,6 +68,18 @@ export default function App() {
           </Protected>
         }
       />
+
+      <Route
+        path="/app/documents"
+        element={
+          <Protected>
+            <Layout>
+              <Documents />
+            </Layout>
+          </Protected>
+        }
+      />
+
       <Route
         path="/app/documents/:documentId"
         element={
